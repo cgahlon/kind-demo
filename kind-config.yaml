@@ -1,7 +1,7 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
-  # If using another CNI (calico/flannel etc.) uncomment this to not install the kind provided default CNI 
+  # If using another CNI (calico/flannel etc.) uncomment this to not install the kind provided default CNI
   # disableDefaultCNI: true
   # Change the podSubnet if this conflicts with your local network or any VPN you maybe using
   # NOTE: If you change this you will need to update the metallb.yaml file.
