@@ -4,4 +4,4 @@ The complete documentation can be found here:  https://kind.sigs.k8s.io/
 After cloning the repo simply run this and you will have a dual control-plane cluster with 3 worker nodes.
 ```bash
 chmod +x ./kind-create-cluster.sh
-kind-create-cluster.sh
+./kind-create-cluster.sh
