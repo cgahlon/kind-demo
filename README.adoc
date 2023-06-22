@@ -22,10 +22,8 @@ cd kind-demo
 ./create-cluster.sh
 ----
 
-=== Install Capsule Multi-Tenancy Manager
-
-Capsule is a bit slow to start.
-Watch the pod logs for a final message that is something like:
+The creat-cluster script installs metallb and capsule.  Just a heads-up, Capsule APIs are a bit slow to start.
+I usually watch the pod logs for a final message that is something like:
 
 [source,text]
 ----
@@ -39,7 +37,10 @@ You can watch the logs with this command:
 kubectl logs -f --namespace capsule-system --selector=control-plane=controller-manager
 ----
 
-Once the CRD is ready we can create a capsule tenant and related users.
+
+=== Install Create a Capsule Tenant
+
+Once Capsule is ready we can create a capsule tenant and related users.
 
 NOTE:: If you receive a connection refused message wait a bit longer, the CRD api is not fully up yet.
 
@@ -57,7 +58,7 @@ Next we create our users and their kube configs
 ./create-user.sh joe oil
 ----
 
-Then we create the foo-development namespace as one of the foo-tenant users and deploy the foo-app in it
+Then we create a namespace as 'alice' and deploy our app to 'production'
 
 [source, shell]
 ----
@@ -65,15 +66,15 @@ KUBECONFIG=alice-oil.kubeconfig kubectl create ns oil-production
 KUBECONFIG=alice-oil.kubeconfig kubectl apply -n oil-production -f demo-apps/app-oil-production.yaml
 ----
 
-Later another user comes along and tries to create their own app with the same hostname but in a different namespace
+Later another user comes along and tries to create their own app in a different namespace.
+However, they copy/pasted the manifest and forgot to update ingress host entry.
+Capsule will block duplicate hostnames based on scope defined in the tenant config
 
 [source, shell]
 ----
 KUBECONFIG=joe-oil.kubeconfig kubectl create namespace oil-development
 KUBECONFIG=joe-oil.kubeconfig kubectl -n oil-development apply -f demo-apps/app-oil-development.yaml
 ----
-
-This collision will also happen for two users in the same tenant
 
 ==== References
 NOTE:: Much of the code for this demo comes from these sites
