@@ -1,0 +1,12 @@
+apiVersion: capsule.clastix.io/v1beta2
+kind: Tenant
+metadata:
+  name: oil
+spec:
+  owners:
+    - name: alice
+      kind: User
+    - name: joe
+      kind: User
+  ingressOptions:
+    hostnameCollisionScope: Tenant

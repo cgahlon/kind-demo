@@ -1,0 +1,85 @@
+= kind-demo
+
+This repository is a demo of a https://kind.sigs.k8s.io/[kind] cluster with the following installed:
+
+- The https://capsule.clastix.io/[metallb] loadbalancer
+- https://capsule.clastix.io/[capsule] Kubernetes multi-tenancy management made easy
+
+A demo app is also included to demonstrate Ingress hostname collision prevention
+
+=== Initialize the cluster
+
+First check out this repo:
+[source, shell]
+----
+ git clone https://github.com/cgahlon/kind-demo.git
+----
+
+Then run the create-cluster.sh script
+[source,shell]
+----
+cd kind-demo
+./create-cluster.sh
+----
+
+=== Install Capsule Multi-Tenancy Manager
+
+Capsule is a bit slow to start.
+Watch the pod logs for a final message that is something like:
+
+[source,text]
+----
+2023-06-22T17:11:32.805Z	INFO	controllers.TLS	Reconciliation completed, processing back in 4247h59m41.194912408s	{"Request.Namespace": "capsule-system", "Request.Name": "capsule-tls"}
+----
+
+You can watch the logs with this command:
+
+[source, shell]
+----
+kubectl logs -f --namespace capsule-system --selector=control-plane=controller-manager
+----
+
+Once the CRD is ready we can create a capsule tenant and related users.
+
+NOTE:: If you receive a connection refused message wait a bit longer, the CRD api is not fully up yet.
+
+[source, shell]
+----
+cd demo-apps
+kubectl apply -f demo-apps/tenant.yaml
+----
+
+Next we create our users and their kube configs
+
+[source, shell]
+----
+./create-user.sh alice oil
+./create-user.sh joe oil
+----
+
+Then we create the foo-development namespace as one of the foo-tenant users and deploy the foo-app in it
+
+[source, shell]
+----
+KUBECONFIG=alice-oil.kubeconfig kubectl create ns oil-production
+KUBECONFIG=alice-oil.kubeconfig kubectl apply -n oil-production -f demo-apps/app-oil-production.yaml
+----
+
+Later another user comes along and tries to create their own app with the same hostname but in a different namespace
+
+[source, shell]
+----
+KUBECONFIG=joe-oil.kubeconfig kubectl create namespace oil-development
+KUBECONFIG=joe-oil.kubeconfig kubectl -n oil-development apply -f demo-apps/app-oil-development.yaml
+----
+
+This collision will also happen for two users in the same tenant
+
+==== References
+NOTE:: Much of the code for this demo comes from these sites
+
+- https://kind.sigs.k8s.io/docs/user/loadbalancer/[kind metallb loadbalancer tutorial]
+- https://metallb.universe.tf/[metallb loadbalancer]
+- https://capsule.clastix.io/docs/general/tutorial/[capsule tutorial]
+- https://github.com/clastix/capsule[capsule on github]
+- https://github.com/metallb/metallb[metallb on github]

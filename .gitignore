@@ -5,3 +5,6 @@
 *.csr
 *.crt
 */tmp
+
+# generated from template so don't put in SCM
+manifests/metallb-config.yaml
