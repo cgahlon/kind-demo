@@ -15,30 +15,21 @@ First check out this repo:
  git clone https://github.com/cgahlon/kind-demo.git
 ----
 
-Then run the create-cluster.sh script
+enter the kind-demo directory
 [source,shell]
 ----
 cd kind-demo
+----
+
+Then run the create-cluster.sh script
+[source,shell]
+----
 ./create-cluster.sh
 ----
 
-The creat-cluster script installs metallb and capsule.  Just a heads-up, Capsule APIs are a bit slow to start.
-I usually watch the pod logs for a final message that is something like:
+It will take a few minutes for capsule to start.  The create-cluster.sh script waits for the capsule control-manager pod to come up healthy. However, the API is still not accepting connections immediately after so you may have to wait a bit longer before the next step will work.
 
-[source,text]
-----
-2023-06-22T17:11:32.805Z	INFO	controllers.TLS	Reconciliation completed, processing back in 4247h59m41.194912408s	{"Request.Namespace": "capsule-system", "Request.Name": "capsule-tls"}
-----
-
-You can watch the logs with this command:
-
-[source, shell]
-----
-kubectl logs -f --namespace capsule-system --selector=control-plane=controller-manager
-----
-
-
-=== Install Create a Capsule Tenant
+=== Create a Capsule Tenant
 
 Once Capsule is ready we can create a capsule tenant and related users.
 
@@ -46,11 +37,12 @@ NOTE:: If you receive a connection refused message wait a bit longer, the CRD ap
 
 [source, shell]
 ----
-cd demo-apps
 kubectl apply -f demo-apps/tenant.yaml
 ----
 
-Next we create our users and their kube configs
+=== Create Users
+
+Next we create our users and their kube configs using the Clastix/Capsule provided https://github.com/clastix/capsule/blob/master/hack/create-user.sh[create-user.sh] script.
 
 [source, shell]
 ----
@@ -58,29 +50,44 @@ Next we create our users and their kube configs
 ./create-user.sh joe oil
 ----
 
-Then we create a namespace as 'alice' and deploy our app to 'production'
+Now we can verify permissions.  Alice and Joe will be able to create namespaces and create/update/delete resources such as ingresses in them but not anywhere else.
+
+[source,shell]
+----
+KUBECONFIG=alice-oil.kubeconfig kubectl auth can-i create namespaces
+# yes
+KUBECONFIG=alice-oil.kubeconfig kubectl auth can-i create ingresses
+# no
+KUBECONFIG=alice-oil.kubeconfig kubectl create ns oil-production
+
+KUBECONFIG=alice-oil.kubeconfig kubectl auth can-i create ingresses -n oil-production
+# yes
+----
+
+Now that we have tested Alice's permissions and created a namespace for her to use, we can create an ingress'production'
 
 [source, shell]
 ----
-KUBECONFIG=alice-oil.kubeconfig kubectl create ns oil-production
 KUBECONFIG=alice-oil.kubeconfig kubectl apply -n oil-production -f demo-apps/app-oil-production.yaml
 ----
 
-Later another user comes along and tries to create their own app in a different namespace.
-However, they copy/pasted the manifest and forgot to update ingress host entry.
-Capsule will block duplicate hostnames based on scope defined in the tenant config
+Some time later Joe comes along and tries to create his own app in a different namespace.  However, he copy/pasted the manifest and forgot to update ingress host entry. Capsule will block duplicate hostnames based on scope defined in the tenant config
 
 [source, shell]
 ----
 KUBECONFIG=joe-oil.kubeconfig kubectl create namespace oil-development
 KUBECONFIG=joe-oil.kubeconfig kubectl -n oil-development apply -f demo-apps/app-oil-development.yaml
+
+# Error from server (Forbidden): error when creating "demo-apps/app-oil-development.yaml": admission webhook "ingress.capsule.clastix.io" denied the request: hostname web.oil.acmecorp.com is already used across the cluster: please, reach out to the system administrators
 ----
+
+
 
 ==== References
 NOTE:: Much of the code for this demo comes from these sites
 
 - https://kind.sigs.k8s.io/docs/user/loadbalancer/[kind metallb loadbalancer tutorial]
-- https://metallb.universe.tf/[metallb loadbalancer]
+- https://metallb.universe.tf/installation/[metallb loadbalancer install instructions]
+- https://github.com/metallb/metallb[metallb on github]
 - https://capsule.clastix.io/docs/general/tutorial/[capsule tutorial]
 - https://github.com/clastix/capsule[capsule on github]
-- https://github.com/metallb/metallb[metallb on github]
