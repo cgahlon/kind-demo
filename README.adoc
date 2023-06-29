@@ -33,7 +33,7 @@ It will take a few minutes for capsule to start.  The create-cluster.sh script w
 
 Once Capsule is ready we can create a capsule tenant and related users.
 
-NOTE:: If you receive a connection refused message wait a bit longer, the CRD api is not fully up yet.
+NOTE:: If you receive a connection refused message wait a bit longer, the Capsule api is not listening yet.
 
 [source, shell]
 ----
