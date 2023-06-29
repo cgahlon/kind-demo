@@ -9,4 +9,4 @@ spec:
     - name: joe
       kind: User
   ingressOptions:
-    hostnameCollisionScope: Tenant
+    hostnameCollisionScope: Cluster
