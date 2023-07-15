@@ -7,27 +7,32 @@ This repository is a demo of a https://kind.sigs.k8s.io/[kind] cluster with the 
 
 A demo app is also included to demonstrate Ingress hostname collision prevention
 
-=== Initialize the cluster
+== Initialize the cluster
 
 First check out this repo:
-[source, shell]
+
+[source,shell]
 ----
  git clone https://github.com/cgahlon/kind-demo.git
 ----
 
 enter the kind-demo directory
+
 [source,shell]
 ----
 cd kind-demo
 ----
 
-Then run the create-cluster.sh script
+Then run the create-cluster.sh script.  This script will set your `$KUBECONFIG` env var to `kinds.kubeconfig`.  This will keep kind from updating/modifying the default ~/.kube/config file.
+
 [source,shell]
 ----
 ./create-cluster.sh
 ----
 
-It will take a few minutes for capsule to start.  The create-cluster.sh script waits for the capsule control-manager pod to come up healthy. However, the API is still not accepting connections immediately after so you may have to wait a bit longer before the next step will work.
+It will take a few minutes for capsule to start.
+The create-cluster.sh script waits for the capsule control-manager pod to come up healthy.
+However, the API is still not accepting connections immediately after so you may have to wait a bit longer before the next step will work.
 
 === Create a Capsule Tenant
 
@@ -35,7 +40,7 @@ Once Capsule is ready we can create a capsule tenant and related users.
 
 NOTE:: If you receive a connection refused message wait a bit longer, the Capsule api is not listening yet.
 
-[source, shell]
+[source,shell]
 ----
 kubectl apply -f demo-apps/tenant.yaml
 ----
@@ -44,46 +49,55 @@ kubectl apply -f demo-apps/tenant.yaml
 
 Next we create our users and their kube configs using the Clastix/Capsule provided https://github.com/clastix/capsule/blob/master/hack/create-user.sh[create-user.sh] script.
 
-[source, shell]
+[source,shell]
 ----
 ./create-user.sh alice oil
 ./create-user.sh joe oil
 ----
 
-Now we can verify permissions.  Alice and Joe will be able to create namespaces and create/update/delete resources such as ingresses in them but not anywhere else.
+=== Test Permissions
+
+Now we can verify permissions.
+Alice and Joe will be able to create namespaces and create/update/delete resources such as ingresses in them but not anywhere else.
 
 [source,shell]
 ----
 KUBECONFIG=alice-oil.kubeconfig kubectl auth can-i create namespaces
-# yes
 KUBECONFIG=alice-oil.kubeconfig kubectl auth can-i create ingresses
-# no
 KUBECONFIG=alice-oil.kubeconfig kubectl create ns oil-production
-
 KUBECONFIG=alice-oil.kubeconfig kubectl auth can-i create ingresses -n oil-production
-# yes
+----
+
+The users once defined as tenant user can no longer see other cluster resources by default.
+
+[source,shell]
+----
+KUBECONFIG=alice-oil.kubeconfig kubectl get pods -n default
+KUBECONFIG=alice-oil.kubeconfig kubectl get pods -n kube-system
 ----
 
 Now that we have tested Alice's permissions and created a namespace for her to use, we can create an ingress'production'
 
-[source, shell]
+[source,shell]
 ----
 KUBECONFIG=alice-oil.kubeconfig kubectl apply -n oil-production -f demo-apps/app-oil-production.yaml
 ----
 
-Some time later Joe comes along and tries to create his own app in a different namespace.  However, he copy/pasted the manifest and forgot to update ingress host entry. Capsule will block duplicate hostnames based on scope defined in the tenant config
+Some time later Joe comes along and tries to create his own app in a different namespace.
+However, he copy/pasted the manifest and forgot to update ingress host entry.
+Capsule will block duplicate hostnames based on scope defined in the tenant config
 
-[source, shell]
+[source,shell]
 ----
 KUBECONFIG=joe-oil.kubeconfig kubectl create namespace oil-development
 KUBECONFIG=joe-oil.kubeconfig kubectl -n oil-development apply -f demo-apps/app-oil-development.yaml
 
+# This is the message you should see when the host is already in use.
 # Error from server (Forbidden): error when creating "demo-apps/app-oil-development.yaml": admission webhook "ingress.capsule.clastix.io" denied the request: hostname web.oil.acmecorp.com is already used across the cluster: please, reach out to the system administrators
 ----
 
+== References
 
-
-==== References
 NOTE:: Much of the code for this demo comes from these sites
 
 - https://kind.sigs.k8s.io/docs/user/loadbalancer/[kind metallb loadbalancer tutorial]
