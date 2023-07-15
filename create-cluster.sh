@@ -5,13 +5,17 @@
 
 
 set -e # Stop and exit immediately if a command exits with a non-zero status.
-set -x # Show each command that is being run
+#set -x # Show each command that is being run
+
+export KUBECONFIG="${PWD}/kind.kubeconfig"
 
 github_latest_release() {
   # function to retrieve the latest release version of a specified github repository
   # accepts 1 arguemnt, the combined username/repository name. i.e. 'user/repo'
   curl --silent "https://api.github.com/repos/$1/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
 }
+
+
 
 # get latest metallb release
 metallb_latest_release=$(github_latest_release "metallb/metallb")
